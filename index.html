@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kar-tally — budget-cap ledger auditor</title>
+<style>
+  :root{
+    --bg: #0a0d12;
+    --bg-2: #0e131b;
+    --panel: #121820;
+    --panel-2: #171f2a;
+    --border: #232b38;
+    --border-soft: #1b2230;
+    --text: #e7ebf3;
+    --muted: #8d97ab;
+    --muted-2: #5f6980;
+    --accent: #5eead4;
+    --accent-2: #7c9eff;
+    --good: #34d399;
+    --good-bg: rgba(52,211,153,0.10);
+    --bad: #f87171;
+    --bad-bg: rgba(248,113,113,0.10);
+    --warn: #fbbf24;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(94,234,212,0.06), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(124,158,255,0.05), transparent 55%),
+      var(--bg);
+    min-height: 100vh;
+  }
+
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 28px 18px 80px; }
+
+  header.top{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; margin-bottom: 22px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .mark{
+    width:38px; height:38px; border-radius:10px; flex:0 0 auto;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--mono); font-weight:700; color:#06110e; font-size:16px;
+  }
+  .brand h1{ font-size: 18px; margin:0; letter-spacing:0.2px; }
+  .brand .sub{ font-size:12.5px; color: var(--muted); margin-top:2px; }
+  .pills{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill{
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.4px; color: var(--muted);
+    border: 1px solid var(--border); background: var(--panel); padding: 5px 10px; border-radius: 999px;
+    white-space:nowrap;
+  }
+
+  .card{
+    background: var(--panel); border:1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 18px;
+  }
+  .card h2{ font-size: 15px; margin: 0 0 10px; display:flex; align-items:center; gap:8px; }
+  .card h2 .num{
+    display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;
+    border-radius:6px; background:var(--panel-2); color:var(--accent); font-family:var(--mono); font-size:11px;
+    border:1px solid var(--border);
+  }
+  .lead{ color: var(--text); font-size: 14.5px; line-height:1.6; }
+  .lead p{ margin: 0 0 10px; }
+  .lead p:last-child{ margin-bottom:0; }
+
+  .limits{
+    border-left: 3px solid var(--warn); background: rgba(251,191,36,0.06);
+    border-radius: 0 10px 10px 0; padding: 12px 14px; font-size: 13px; color: var(--muted);
+    line-height:1.6;
+  }
+  .limits b{ color: var(--warn); }
+
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items:start; }
+  @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+  label{ display:block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; font-family: var(--mono); letter-spacing:0.3px; }
+  label:first-of-type{ margin-top:0; }
+  input[type=number], textarea{
+    width:100%; background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 9px; padding: 10px 12px; font-family: var(--mono); font-size: 13px; outline:none;
+  }
+  input[type=number]:focus, textarea:focus{ border-color: var(--accent-2); }
+  textarea{ min-height: 260px; resize: vertical; line-height:1.5; }
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btnrow{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  button{
+    font-family: var(--sans); font-size: 13px; font-weight:600; cursor:pointer;
+    border-radius: 9px; padding: 9px 14px; border:1px solid var(--border); background: var(--panel-2); color: var(--text);
+    transition: transform 0.05s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  button:hover{ border-color: var(--accent-2); }
+  button:active{ transform: translateY(1px); }
+  button.primary{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#06110e; border:none; }
+  button.ghost{ background: transparent; }
+  button.small{ font-size: 12px; padding: 7px 11px; font-weight:500; color: var(--muted); }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .verdict{
+    display:flex; align-items:center; gap:12px; padding: 14px 16px; border-radius: 12px;
+    border:1px solid var(--border); background: var(--panel-2); margin-bottom: 14px;
+  }
+  .badge{
+    font-family: var(--mono); font-weight:800; font-size: 13px; letter-spacing: 1px;
+    padding: 7px 14px; border-radius: 8px;
+  }
+  .badge.pass{ background: var(--good-bg); color: var(--good); border:1px solid rgba(52,211,153,0.35); }
+  .badge.fail{ background: var(--bad-bg); color: var(--bad); border:1px solid rgba(248,113,113,0.35); }
+  .badge.neutral{ background: var(--panel); color: var(--muted); border:1px solid var(--border); }
+  .verdict .meta{ font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
+  .verdict .meta b{ color: var(--text); }
+
+  .violist{ list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .violist li{
+    font-family: var(--mono); font-size: 12.5px; color: var(--bad); background: var(--bad-bg);
+    border:1px solid rgba(248,113,113,0.25); padding:8px 10px; border-radius:8px; line-height:1.5;
+  }
+  .violist.empty li{ color: var(--good); background: var(--good-bg); border-color: rgba(52,211,153,0.25); }
+
+  .tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius: 10px; }
+  table{ width:100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; min-width: 560px; }
+  thead th{
+    text-align:left; padding:9px 10px; background: var(--panel-2); color: var(--muted);
+    font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  tbody td{ padding:8px 10px; border-bottom:1px solid var(--border-soft); white-space:nowrap; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.bad{ background: rgba(248,113,113,0.06); }
+  .ok-tick{ color: var(--good); } .bad-x{ color: var(--bad); }
+
+  .fingerprint{
+    margin-top: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+    word-break: break-all; background: var(--bg-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+  }
+  .fingerprint b{ color: var(--accent); display:block; margin-bottom:4px; font-size:11px; letter-spacing:0.4px; }
+
+  .selftest-item{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; border:1px solid var(--border); border-radius:9px; background: var(--bg-2); margin-bottom:8px;
+  }
+  .selftest-item .name{ font-size:13px; font-weight:600; }
+  .selftest-item .desc{ font-size:12px; color: var(--muted); font-family: var(--mono); width:100%; margin-top:2px; }
+  .st-ok{ color: var(--good); font-family: var(--mono); font-size:12px; font-weight:700; }
+  .st-bad{ color: var(--bad); font-family: var(--mono); font-size:12px; font-weight:700; }
+
+  details{ margin-top: 6px; }
+  summary{ cursor:pointer; font-size: 12.5px; color: var(--accent-2); font-family: var(--mono); }
+  pre.src{
+    background: var(--bg-2); border:1px solid var(--border); border-radius:10px; padding:14px;
+    font-family: var(--mono); font-size:11.5px; line-height:1.6; overflow-x:auto; color:#c7d0e0; margin-top:10px;
+  }
+
+  footer{ margin-top: 30px; text-align:center; color: var(--muted-2); font-size: 12px; line-height:1.8; }
+  footer a{ color: var(--muted); }
+
+  .hint{ font-size:11.5px; color: var(--muted-2); margin-top:6px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">K∴</div>
+      <div>
+        <h1>kar-tally</h1>
+        <div class="sub">deterministic budget-cap ledger auditor</div>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill">SOVEREIGN · 1 FILE</span>
+      <span class="pill">OFFLINE-CAPABLE</span>
+      <span class="pill">NO LLM JUDGE</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2><span class="num">1</span> What this is</h2>
+    <div class="lead">
+      <p>An AI agent (or any automated system) is given a spending cap and a log of actions it took, each with a cost
+      and a running balance it claims to have left. <b>kar-tally recomputes that log from scratch</b> — cap minus
+      cumulative cost, step by step — and reports whether the claimed numbers are actually consistent with the raw
+      entries, whether the sequence has any gaps or duplicates, and whether the cap was ever exceeded at any point,
+      even if a later entry's claimed balance was edited to hide it.</p>
+      <p>There is no model in the loop. The verdict is pure arithmetic and comparison over the numbers you give it —
+      anyone can take the same entries and cap, redo the same three checks by hand, and get the identical PASS/FAIL.
+      That's the whole proof.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">!</span> Honest limits</h2>
+    <div class="limits">
+      This tool proves <b>internal arithmetic consistency</b> of a ledger you provide — it does not know whether the
+      ledger matches what actually happened outside the browser (a real API bill, a real token meter). It trusts that
+      each row's <span style="color:var(--text)">seq</span> number genuinely corresponds to one real event; if an
+      attacker rewrites <em>every</em> field of an entry consistently (cost, balance, and reuses the next seq), this
+      check alone cannot detect that the underlying event was fabricated — it can only prove the numbers you handed it
+      are self-consistent (or aren't). Pair it with an independent event source (server logs, provider invoices) for
+      full assurance. It is a consistency and tamper-evidence check, not a live billing feed.
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="num">2</span> Ledger input</h2>
+      <div class="row2">
+        <div>
+          <label for="capInput">Cap (starting budget)</label>
+          <input type="number" id="capInput" value="500" step="0.01">
+        </div>
+        <div>
+          <label for="startSeqInput">Start sequence</label>
+          <input type="number" id="startSeqInput" value="1" step="1">
+        </div>
+      </div>
+      <label for="entriesInput">Entries (JSON array — seq, actor, action, cost, balance)</label>
+      <textarea id="entriesInput" spellcheck="false"></textarea>
+      <div class="hint">balance = the claimed running balance <b>after</b> this entry's cost is deducted.</div>
+      <div class="btnrow">
+        <button class="primary" id="verifyBtn">Verify ledger</button>
+        <button class="small" id="loadGood">Load: clean sample</button>
+        <button class="small" id="loadOverspend">Load: hidden overspend</button>
+        <button class="small" id="loadGap">Load: deleted entry</button>
+        <button class="small" id="loadMismatch">Load: edited balance</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">3</span> Verification result</h2>
+      <div class="verdict">
+        <span class="badge neutral" id="verdictBadge">NOT RUN</span>
+        <span class="meta" id="verdictMeta">Click "Verify ledger" to recompute the entries on the left.</span>
+      </div>
+      <ul class="violist empty" id="violList"><li>No violations to show yet.</li></ul>
+      <div class="tablewrap">
+        <table id="resultTable">
+          <thead><tr><th>#</th><th>seq</th><th>actor</th><th>action</th><th>cost</th><th>claimed bal.</th><th>recomputed</th><th>ok</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="fingerprint" id="fingerprintBox"><b>SHA-256 fingerprint of this input</b>—</div>
+      <div class="btnrow">
+        <button class="ghost small" id="downloadBtn" disabled>Download verification report (.json)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span> Live self-test</h2>
+    <div class="lead"><p>Runs six known ledgers — one clean, five deliberately tampered in different ways — through
+    the exact same <code>verifyLedger()</code> function above, and checks that each one is judged the way it honestly
+    should be. This is the end-to-end proof that the auditor actually catches what it claims to catch.</p></div>
+    <div class="btnrow"><button class="primary" id="selfTestBtn">Run full self-test</button></div>
+    <div id="selfTestResults" style="margin-top:14px;"></div>
+    <div class="verdict" id="selfTestSummary" style="display:none; margin-top:10px;">
+      <span class="badge neutral" id="selfTestBadge">—</span>
+      <span class="meta" id="selfTestMeta"></span>
+    </div>
+    <details>
+      <summary>View the exact verifier source running on this page</summary>
+      <pre class="src" id="sourceBox"></pre>
+    </details>
+  </div>
+
+  <footer>
+    kar-tally · part of the karma-didy sovereign toolkit · no network calls, no external scripts, no server —
+    view source to confirm.<br>
+    Provable/accountable AI means a verdict anyone can recompute, not a model's opinion of one.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- core verifier (pure, deterministic, no I/O) ----------
+  function verifyLedger(cap, startSeq, entries) {
+    const violations = [];
+    const rows = [];
+    const capCents = Math.round(cap * 100);
+    let runningCents = capCents;
+    let expectedSeq = startSeq;
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return { verdict: 'FAIL', violations: [{ index: -1, seq: null, message: 'entries must be a non-empty array' }], rows: [], totalSpent: 0, finalBalance: cap };
+    }
+
+    entries.forEach((e, i) => {
+      const rowMsgs = [];
+      const requiredFields = ['seq', 'actor', 'action', 'cost', 'balance'];
+      for (const f of requiredFields) {
+        if (!(f in e)) rowMsgs.push('missing field "' + f + '"');
+      }
+      const seq = e.seq;
+      const cost = e.cost;
+      const claimedBalance = e.balance;
+
+      if (!(typeof seq === 'number' && Number.isInteger(seq))) rowMsgs.push('seq must be an integer');
+      if (!(typeof cost === 'number' && isFinite(cost) && cost >= 0)) rowMsgs.push('cost must be a non-negative finite number');
+      if (!(typeof claimedBalance === 'number' && isFinite(claimedBalance))) rowMsgs.push('balance must be a finite number');
+      if (!(typeof e.actor === 'string' && e.actor)) rowMsgs.push('actor must be a non-empty string');
+      if (!(typeof e.action === 'string' && e.action)) rowMsgs.push('action must be a non-empty string');
+
+      let recomputedBalance = null;
+      let capExceeded = false, balanceMismatch = false, seqBreak = false;
+
+      if (typeof seq === 'number' && Number.isInteger(seq)) {
+        if (seq !== expectedSeq) {
+          seqBreak = true;
+          rowMsgs.push('sequence break: expected seq ' + expectedSeq + ', found ' + seq);
+        }
+        expectedSeq = seq + 1;
+      } else {
+        expectedSeq = expectedSeq + 1;
+      }
+
+      if (typeof cost === 'number' && isFinite(cost)) {
+        const costCents = Math.round(cost * 100);
+        runningCents -= costCents;
+        recomputedBalance = runningCents / 100;
+        if (runningCents < 0) {
+          capExceeded = true;
+          rowMsgs.push('cap exceeded: recomputed balance ' + recomputedBalance.toFixed(2) + ' is below zero');
+        }
+        if (typeof claimedBalance === 'number' && isFinite(claimedBalance)) {
+          const claimedCents = Math.round(claimedBalance * 100);
+          if (claimedCents !== runningCents) {
+            balanceMismatch = true;
+            rowMsgs.push('balance mismatch: claimed ' + claimedBalance.toFixed(2) + ', recomputed ' + recomputedBalance.toFixed(2));
+          }
+        }
+      }
+
+      rows.push({ index: i, seq: seq, actor: e.actor, action: e.action, cost: cost, claimedBalance: claimedBalance, recomputedBalance: recomputedBalance, ok: rowMsgs.length === 0, flags: { capExceeded: capExceeded, balanceMismatch: balanceMismatch, seqBreak: seqBreak }, messages: rowMsgs });
+      rowMsgs.forEach(m => violations.push({ index: i, seq: seq, message: m }));
+    });
+
+    const verdict = violations.length === 0 ? 'PASS' : 'FAIL';
+    return { verdict: verdict, violations: violations, rows: rows, totalSpent: (capCents - runningCents) / 100, finalBalance: runningCents / 100 };
+  }
+
+  function canonicalize(value) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']';
+    const keys = Object.keys(value).sort();
+    return '{' + keys.map(k => JSON.stringify(k) + ':' + canonicalize(value[k])).join(',') + '}';
+  }
+
+  async function sha256Hex(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // ---------- sample ledgers ----------
+  const goodEntries = [
+    { seq: 1, actor: 'agent-1', action: 'api_call:search',   cost: 40.00, balance: 460.00 },
+    { seq: 2, actor: 'agent-1', action: 'api_call:generate', cost: 75.50, balance: 384.50 },
+    { seq: 3, actor: 'agent-2', action: 'tool:send_email',   cost: 12.25, balance: 372.25 },
+    { seq: 4, actor: 'agent-1', action: 'api_call:generate', cost: 88.00, balance: 284.25 },
+    { seq: 5, actor: 'agent-3', action: 'tool:file_write',   cost: 5.00,  balance: 279.25 },
+    { seq: 6, actor: 'agent-2', action: 'api_call:search',   cost: 40.00, balance: 239.25 }
+  ];
+
+  function makeOverspend() {
+    const e = goodEntries.map(x => ({ ...x }));
+    e[3] = { seq: 4, actor: 'agent-1', action: 'api_call:generate', cost: 400.00, balance: 20.00 };
+    return e;
+  }
+  function makeGap() {
+    return [goodEntries[0], goodEntries[1], goodEntries[3], goodEntries[4], goodEntries[5]].map(x => ({ ...x }));
+  }
+  function makeMismatch() {
+    const e = goodEntries.map(x => ({ ...x }));
+    e[4] = { ...e[4], balance: 300.00 };
+    return e;
+  }
+
+  // ---------- UI wiring ----------
+  const capInput = document.getElementById('capInput');
+  const startSeqInput = document.getElementById('startSeqInput');
+  const entriesInput = document.getElementById('entriesInput');
+  const verdictBadge = document.getElementById('verdictBadge');
+  const verdictMeta = document.getElementById('verdictMeta');
+  const violList = document.getElementById('violList');
+  const resultTableBody = document.querySelector('#resultTable tbody');
+  const fingerprintBox = document.getElementById('fingerprintBox');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  let lastReport = null;
+
+  function loadSample(entries, cap) {
+    capInput.value = cap !== undefined ? cap : 500;
+    startSeqInput.value = 1;
+    entriesInput.value = JSON.stringify(entries, null, 2);
+    resetResults();
+  }
+
+  function resetResults() {
+    verdictBadge.className = 'badge neutral';
+    verdictBadge.textContent = 'NOT RUN';
+    verdictMeta.textContent = 'Click "Verify ledger" to recompute the entries on the left.';
+    violList.className = 'violist empty';
+    violList.innerHTML = '<li>No violations to show yet.</li>';
+    resultTableBody.innerHTML = '';
+    fingerprintBox.innerHTML = '<b>SHA-256 fingerprint of this input</b>—';
+    downloadBtn.disabled = true;
+    lastReport = null;
+  }
+
+  function renderRows(rows) {
+    resultTableBody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      if (!r.ok) tr.className = 'bad';
+      const bal = (v) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(2) : String(v);
+      tr.innerHTML =
+        '<td>' + (r.index + 1) + '</td>' +
+        '<td>' + (r.seq === undefined ? '—' : r.seq) + '</td>' +
+        '<td>' + (r.actor || '—') + '</td>' +
+        '<td>' + (r.action || '—') + '</td>' +
+        '<td>' + bal(r.cost) + '</td>' +
+        '<td>' + bal(r.claimedBalance) + '</td>' +
+        '<td>' + bal(r.recomputedBalance) + '</td>' +
+        '<td>' + (r.ok ? '<span class="ok-tick">&#10003;</span>' : '<span class="bad-x">&#10007;</span>') + '</td>';
+      resultTableBody.appendChild(tr);
+    });
+  }
+
+  async function runVerify() {
+    let cap, startSeq, entries;
+    try {
+      cap = parseFloat(capInput.value);
+      startSeq = parseInt(startSeqInput.value, 10);
+      if (!isFinite(cap)) throw new Error('cap must be a number');
+      if (!Number.isInteger(startSeq)) throw new Error('start sequence must be an integer');
+      entries = JSON.parse(entriesInput.value);
+    } catch (err) {
+      verdictBadge.className = 'badge fail';
+      verdictBadge.textContent = 'FAIL';
+      verdictMeta.textContent = 'Input error: ' + err.message;
+      violList.className = 'violist';
+      violList.innerHTML = '<li>' + escapeHtml(String(err.message)) + '</li>';
+      resultTableBody.innerHTML = '';
+      downloadBtn.disabled = true;
+      lastReport = null;
+      return;
+    }
+
+    const result = verifyLedger(cap, startSeq, entries);
+    const fingerprintInput = canonicalize({ cap: cap, startSeq: startSeq, entries: entries });
+    const fingerprint = await sha256Hex(fingerprintInput);
+
+    verdictBadge.className = 'badge ' + (result.verdict === 'PASS' ? 'pass' : 'fail');
+    verdictBadge.textContent = result.verdict;
+    verdictMeta.innerHTML = '<b>' + result.rows.length + '</b> rows checked · <b>' + result.violations.length +
+      '</b> violation(s) · total spent <b>' + result.totalSpent.toFixed(2) + '</b> · final balance <b>' + result.finalBalance.toFixed(2) + '</b>';
+
+    if (result.violations.length === 0) {
+      violList.className = 'violist empty';
+      violList.innerHTML = '<li>No violations found — every recomputed balance matches the claimed balance, the sequence is gap-free, and the cap was never exceeded.</li>';
+    } else {
+      violList.className = 'violist';
+      violList.innerHTML = result.violations.map(v =>
+        '<li>row ' + (v.index + 1) + (v.seq !== null && v.seq !== undefined ? ' (seq ' + v.seq + ')' : '') + ': ' + escapeHtml(v.message) + '</li>'
+      ).join('');
+    }
+
+    renderRows(result.rows);
+
+    fingerprintBox.innerHTML = '<b>SHA-256 fingerprint of this input (cap + startSeq + entries)</b>' + fingerprint;
+
+    lastReport = {
+      tool: 'kar-tally',
+      generatedAt: new Date().toISOString(),
+      input: { cap: cap, startSeq: startSeq, entries: entries },
+      fingerprint: fingerprint,
+      verdict: result.verdict,
+      totalSpent: result.totalSpent,
+      finalBalance: result.finalBalance,
+      violations: result.violations,
+      rows: result.rows,
+      note: 'Recompute independently: runningBalance starts at cap and cost is subtracted per entry in array order; verify seq === startSeq+index and claimedBalance === recomputed running balance to the cent.'
+    };
+    downloadBtn.disabled = false;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  document.getElementById('verifyBtn').addEventListener('click', runVerify);
+  document.getElementById('loadGood').addEventListener('click', () => loadSample(goodEntries, 500));
+  document.getElementById('loadOverspend').addEventListener('click', () => loadSample(makeOverspend(), 500));
+  document.getElementById('loadGap').addEventListener('click', () => loadSample(makeGap(), 500));
+  document.getElementById('loadMismatch').addEventListener('click', () => loadSample(makeMismatch(), 500));
+
+  downloadBtn.addEventListener('click', () => {
+    if (!lastReport) return;
+    const blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kar-tally-report-' + Date.now() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+
+  // ---------- self-test ----------
+  const selfTestScenarios = [
+    { name: 'Clean ledger', desc: 'Six normal entries, cap=500, nothing altered.', cap: 500, startSeq: 1, entries: goodEntries, expect: 'PASS' },
+    { name: 'Hidden overspend', desc: 'Entry 4 cost spiked to 400.00 and its claimed balance was rewritten to hide the overspend.', cap: 500, startSeq: 1, entries: makeOverspend(), expect: 'FAIL' },
+    { name: 'Deleted entry', desc: 'Entry seq=3 removed entirely; seq jumps 2 -> 4.', cap: 500, startSeq: 1, entries: makeGap(), expect: 'FAIL' },
+    { name: 'Edited balance only', desc: 'Entry 5 claimed balance changed to 300.00; cost left untouched.', cap: 500, startSeq: 1, entries: makeMismatch(), expect: 'FAIL' },
+    { name: 'Missing field', desc: 'A single entry with no "action" field.', cap: 500, startSeq: 1, entries: [{ seq: 1, actor: 'a', cost: 1, balance: 499 }], expect: 'FAIL' },
+    { name: 'Empty ledger', desc: 'Zero entries submitted for a nonzero cap.', cap: 500, startSeq: 1, entries: [], expect: 'FAIL' }
+  ];
+
+  document.getElementById('selfTestBtn').addEventListener('click', () => {
+    const container = document.getElementById('selfTestResults');
+    container.innerHTML = '';
+    let allOk = true;
+    selfTestScenarios.forEach(s => {
+      const result = verifyLedger(s.cap, s.startSeq, s.entries);
+      const pass = result.verdict === s.expect;
+      allOk = allOk && pass;
+      const div = document.createElement('div');
+      div.className = 'selftest-item';
+      div.innerHTML =
+        '<span class="name">' + escapeHtml(s.name) + '</span>' +
+        '<span class="' + (pass ? 'st-ok' : 'st-bad') + '">' + result.verdict + ' (expected ' + s.expect + ') ' + (pass ? '&#10003; correct' : '&#10007; WRONG') + '</span>' +
+        '<span class="desc">' + escapeHtml(s.desc) + (result.violations.length ? ' — caught: ' + escapeHtml(result.violations[0].message) : '') + '</span>';
+      container.appendChild(div);
+    });
+    const summary = document.getElementById('selfTestSummary');
+    const badge = document.getElementById('selfTestBadge');
+    const meta = document.getElementById('selfTestMeta');
+    summary.style.display = 'flex';
+    badge.className = 'badge ' + (allOk ? 'pass' : 'fail');
+    badge.textContent = allOk ? 'SELF-TEST PASS' : 'SELF-TEST FAIL';
+    meta.textContent = allOk
+      ? 'All ' + selfTestScenarios.length + ' scenarios were judged correctly — the clean ledger passed and every tampered variant was caught.'
+      : 'At least one scenario was judged incorrectly — see items marked WRONG above.';
+  });
+
+  // show the exact running source for transparency
+  document.getElementById('sourceBox').textContent = verifyLedger.toString();
+
+  // init
+  loadSample(goodEntries, 500);
+})();
+</script>
+</body>
+</html>
