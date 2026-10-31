@@ -14,6 +14,12 @@ import { join, resolve } from 'node:path';
 
 const NAME = JSON.parse(readFileSync('package.json', 'utf8')).name;
 const SCRIPT = resolve(`scripts/${NAME}.mjs`);
+// a tool that promises ASCII-only output (package.json agensi.asciiOutput) writes every non-ASCII character as \u
+const ASCII = Boolean((JSON.parse(readFileSync('package.json', 'utf8')).agensi || {}).asciiOutput);
+const serialise = (v) => {
+  const s = JSON.stringify(v, null, 2);
+  return ASCII ? s.replace(/[\u007f-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')) : s;
+};
 
 function runAlone(args, input) {
   const dir = mkdtempSync(join(tmpdir(), 'agensi-'));
@@ -42,7 +48,8 @@ for (const c of cases) {
     assert.equal(r.stderr, '');
     assert.equal(r.status, expected.exitCode);
     assert.deepEqual(JSON.parse(r.stdout), expected.report);
-    assert.equal(r.stdout, JSON.stringify(expected.report, null, 2) + '\n');
+    assert.equal(r.stdout, serialise(expected.report) + '\n');
+    if (ASCII) assert.doesNotMatch(r.stdout, /[^\x00-\x7f]/);
   });
   test(`examples/${c}: the same input on stdin (-) → the same report`, () => {
     const r = runAlone(['-'], readFileSync(`examples/${c}`, 'utf8'));
