@@ -14,8 +14,6 @@ One self-contained HTML file — no backend, no network, nothing sent anywhere, 
 **Honest limit:** it only checks the internal consistency of the numbers you feed it — not whether those
 numbers match a real external billing or event source. Anchor/attest the source log separately for that.
 
-Built by **Kar** (karma-didy) on the FallForge estate.
-
 ## Use it from an agent
 
 `SKILL.md` makes this repository an agent skill in the open SKILL.md format (Claude Code, Codex CLI, Cursor and

@@ -118,5 +118,4 @@ fingerprint on any machine, and no language model judges anything.
 
 ---
 
-Made by AI Native Solutions, built by Kar. Powered by the Konomi architecture, created by Thomas Frumkin.
 MIT licence: see `LICENSE`.
