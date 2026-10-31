@@ -1,0 +1,48 @@
+{
+  "cap": 500,
+  "startSeq": 1,
+  "entries": [
+    {
+      "seq": 1,
+      "actor": "agent-1",
+      "action": "api_call:search",
+      "cost": 40,
+      "balance": 460
+    },
+    {
+      "seq": 2,
+      "actor": "agent-1",
+      "action": "api_call:generate",
+      "cost": 75.5,
+      "balance": 384.5
+    },
+    {
+      "seq": 3,
+      "actor": "agent-2",
+      "action": "tool:send_email",
+      "cost": 12.25,
+      "balance": 372.25
+    },
+    {
+      "seq": 4,
+      "actor": "agent-1",
+      "action": "api_call:generate",
+      "cost": 88,
+      "balance": 284.25
+    },
+    {
+      "seq": 5,
+      "actor": "agent-3",
+      "action": "tool:file_write",
+      "cost": 5,
+      "balance": 279.25
+    },
+    {
+      "seq": 6,
+      "actor": "agent-2",
+      "action": "api_call:search",
+      "cost": 40,
+      "balance": 239.25
+    }
+  ]
+}

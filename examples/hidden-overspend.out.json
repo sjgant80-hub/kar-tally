@@ -1,0 +1,153 @@
+{
+  "exitCode": 1,
+  "report": {
+    "tool": "kar-tally",
+    "algorithm": "kar-tally-v1",
+    "verdict": "FAIL",
+    "cap": 500,
+    "startSeq": 1,
+    "totalSpent": 572.75,
+    "finalBalance": -72.75,
+    "violations": [
+      {
+        "index": 3,
+        "seq": 4,
+        "message": "cap exceeded: recomputed balance -27.75 is below zero"
+      },
+      {
+        "index": 3,
+        "seq": 4,
+        "message": "balance mismatch: claimed 20.00, recomputed -27.75"
+      },
+      {
+        "index": 4,
+        "seq": 5,
+        "message": "cap exceeded: recomputed balance -32.75 is below zero"
+      },
+      {
+        "index": 4,
+        "seq": 5,
+        "message": "balance mismatch: claimed 279.25, recomputed -32.75"
+      },
+      {
+        "index": 5,
+        "seq": 6,
+        "message": "cap exceeded: recomputed balance -72.75 is below zero"
+      },
+      {
+        "index": 5,
+        "seq": 6,
+        "message": "balance mismatch: claimed 239.25, recomputed -72.75"
+      }
+    ],
+    "rows": [
+      {
+        "index": 0,
+        "seq": 1,
+        "actor": "agent-1",
+        "action": "api_call:search",
+        "cost": 40,
+        "claimedBalance": 460,
+        "recomputedBalance": 460,
+        "ok": true,
+        "flags": {
+          "capExceeded": false,
+          "balanceMismatch": false,
+          "seqBreak": false
+        },
+        "messages": []
+      },
+      {
+        "index": 1,
+        "seq": 2,
+        "actor": "agent-1",
+        "action": "api_call:generate",
+        "cost": 75.5,
+        "claimedBalance": 384.5,
+        "recomputedBalance": 384.5,
+        "ok": true,
+        "flags": {
+          "capExceeded": false,
+          "balanceMismatch": false,
+          "seqBreak": false
+        },
+        "messages": []
+      },
+      {
+        "index": 2,
+        "seq": 3,
+        "actor": "agent-2",
+        "action": "tool:send_email",
+        "cost": 12.25,
+        "claimedBalance": 372.25,
+        "recomputedBalance": 372.25,
+        "ok": true,
+        "flags": {
+          "capExceeded": false,
+          "balanceMismatch": false,
+          "seqBreak": false
+        },
+        "messages": []
+      },
+      {
+        "index": 3,
+        "seq": 4,
+        "actor": "agent-1",
+        "action": "api_call:generate",
+        "cost": 400,
+        "claimedBalance": 20,
+        "recomputedBalance": -27.75,
+        "ok": false,
+        "flags": {
+          "capExceeded": true,
+          "balanceMismatch": true,
+          "seqBreak": false
+        },
+        "messages": [
+          "cap exceeded: recomputed balance -27.75 is below zero",
+          "balance mismatch: claimed 20.00, recomputed -27.75"
+        ]
+      },
+      {
+        "index": 4,
+        "seq": 5,
+        "actor": "agent-3",
+        "action": "tool:file_write",
+        "cost": 5,
+        "claimedBalance": 279.25,
+        "recomputedBalance": -32.75,
+        "ok": false,
+        "flags": {
+          "capExceeded": true,
+          "balanceMismatch": true,
+          "seqBreak": false
+        },
+        "messages": [
+          "cap exceeded: recomputed balance -32.75 is below zero",
+          "balance mismatch: claimed 279.25, recomputed -32.75"
+        ]
+      },
+      {
+        "index": 5,
+        "seq": 6,
+        "actor": "agent-2",
+        "action": "api_call:search",
+        "cost": 40,
+        "claimedBalance": 239.25,
+        "recomputedBalance": -72.75,
+        "ok": false,
+        "flags": {
+          "capExceeded": true,
+          "balanceMismatch": true,
+          "seqBreak": false
+        },
+        "messages": [
+          "cap exceeded: recomputed balance -72.75 is below zero",
+          "balance mismatch: claimed 239.25, recomputed -72.75"
+        ]
+      }
+    ],
+    "fingerprint": "0c479df6717e1e52bcf0b0836a650f9642549bb6f2e3bed76671105574d2e01b",
+    "method": "The running balance starts at the cap; each entry's cost is subtracted in array order, in whole cents. Each seq must equal the previous seq + 1 (the first must equal startSeq), each claimed balance must equal the recomputed balance to the cent, and the recomputed balance must never go below zero. fingerprint = SHA-256 of the canonical JSON of {cap, startSeq, entries} (keys sorted, no whitespace)."
+  }
+}

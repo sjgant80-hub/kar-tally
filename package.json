@@ -1,0 +1,17 @@
+{
+  "name": "kar-tally",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic budget-ledger auditor, no LLM judge: recompute an agent spend log from the cap and catch hidden overspends, gaps and edited balances.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "agensi": { "selftest": true },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test kernel.test.mjs skill.test.mjs",
+    "zip": "node make-zip.mjs",
+    "gate": "node gate.mjs --witness ../witness/witness.mjs",
+    "verify-receipt": "node gate.mjs --verify"
+  }
+}

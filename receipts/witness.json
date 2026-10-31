@@ -1,0 +1,24 @@
+{
+ "kind": "kar-tally.witness",
+ "v": 1,
+ "witness": {
+  "tag": "v0.6",
+  "commit": "f04fe3047e3d49b98c67713befd5b77182afa0d4",
+  "sha256": "eb0ed198306b596e58d62cab030cb839bd20402f53f78d5e52f345e963bebf64"
+ },
+ "kernel": "kernel.mjs",
+ "kernelSha256": "553245e6363cb6762d8ca5f1df3e213742634054978f7cf3a247c057c2d41b45",
+ "tests": "node --test kernel.test.mjs",
+ "testsSha256": "d9e962ce6ba075fc97fc50a5a9ed1b66457fa4c3e29cdbbfeca98bc148b2a227",
+ "node": "v25.7.0",
+ "platform": "win32",
+ "total": 38,
+ "killed": 38,
+ "survived": [],
+ "ignored": [],
+ "capped": false,
+ "timeoutMs": 60000,
+ "clean": true,
+ "seconds": 74,
+ "rerun": "git clone https://github.com/sjgant80-hub/witness && git -C witness checkout v0.6 && node gate.mjs --witness witness/witness.mjs"
+}
