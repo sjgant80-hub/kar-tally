@@ -9,7 +9,7 @@
  "kernel": "kernel.mjs",
  "kernelSha256": "c0dc1cd20f2fe52c101474e7b04a85d537be4ded9ebb780d98401228b9798a43",
  "tests": "node --test kernel.test.mjs",
- "testsSha256": "251a3cf9198db3a1eae9be0278e38983e634d0ea0b5cdf7c7c1ffa346a79acca",
+ "testsSha256": "d461a66e2eaab846412db19dcd509312015e08e3805e2c71b2bddd82b09dfab4",
  "node": "v25.7.0",
  "platform": "win32",
  "total": 38,
