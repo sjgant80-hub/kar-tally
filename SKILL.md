@@ -11,7 +11,7 @@ docs_url: "https://sjgant80-hub.github.io/kar-tally/"
 # Kar-Tally: did the agent stay under budget?
 
 An agent's report of its own spending is a claim. Kar-Tally turns it into arithmetic: starting from the
-cap, it subtracts each entry's cost in order, in whole cents, and checks every number the ledger claims.
+cap, it subtracts each entry's cost in order, exactly to a millionth of a unit (so sub-cent costs add up), and checks every number the ledger claims.
 
 For each entry it checks that:
 
@@ -65,7 +65,7 @@ claimed balance was rewritten to 20.00. The report (`examples/hidden-overspend.o
 ```json
 {
   "tool": "kar-tally",
-  "algorithm": "kar-tally-v1",
+  "algorithm": "kar-tally-v2",
   "verdict": "FAIL",
   "cap": 500,
   "startSeq": 1,
@@ -88,7 +88,7 @@ The full report also has a `rows` table (claimed against recomputed balance for 
 Everything here is deterministic: the same ledger gives the same verdict, the same violations and the same
 fingerprint on any machine, and no language model judges anything.
 
-- **The arithmetic:** every recomputed balance is the cap minus the running sum of costs, in whole cents.
+- **The arithmetic:** every recomputed balance is the cap minus the running sum of costs, tracked to a millionth of a unit so sub-cent costs accumulate.
   Re-add the costs by hand or in a spreadsheet and compare the `rows`.
 - **The fingerprint:** SHA-256 of the canonical JSON of `{cap, entries, startSeq}` (keys sorted at every
   depth, no whitespace). Any SHA-256 tool reproduces it.
@@ -106,14 +106,14 @@ fingerprint on any machine, and no language model judges anything.
   ZIP's SHA-256.
 - **The mutation gate:** witness v0.6 (https://github.com/sjgant80-hub/witness, tag `v0.6`) made
   38 single-operator changes (mutants) to the kernel and the tests caught 38 of them. None was baselined. The receipt is
-  `receipts/witness.json` in the repository, for kernel SHA-256 `553245e6363cb6762d8ca5f1df3e213742634054978f7cf3a247c057c2d41b45`. With the repository and
+  `receipts/witness.json` in the repository, for kernel SHA-256 `c0dc1cd20f2fe52c101474e7b04a85d537be4ded9ebb780d98401228b9798a43`. With the repository and
   witness v0.6 side by side, `node gate.mjs --witness ../witness/witness.mjs` re-runs it.
 
 ## Where it stops
 
 - It checks that the ledger is consistent with itself and with the cap. It does not check the costs against
   an outside bill or event log; anchor the source log separately for that.
-- Amounts are compared in whole cents (two decimal places). A ledger kept in finer units must be scaled first.
+- Costs are tracked to a millionth of a unit, so sub-cent API costs accumulate correctly; claimed balances are compared to the cent (two decimal places).
 - Entries are checked in the order given; it does not sort by time or by `seq`.
 
 ---

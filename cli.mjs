@@ -39,7 +39,7 @@ async function tally(input) {
       violations: result.violations,
       rows: result.rows,
       fingerprint: await fingerprint(cap, startSeq, entries),
-      method: 'The running balance starts at the cap; each entry\'s cost is subtracted in array order, in whole cents. ' +
+      method: 'The running balance starts at the cap; each entry\'s cost is subtracted in array order, exactly to a millionth of a unit (sub-cent costs accumulate). ' +
         'Each seq must equal the previous seq + 1 (the first must equal startSeq), each claimed balance must equal the ' +
         'recomputed balance to the cent, and the recomputed balance must never go below zero. fingerprint = SHA-256 of ' +
         'the canonical JSON of {cap, startSeq, entries} (keys sorted, no whitespace).',

@@ -10,7 +10,7 @@ import {
 const entry = (seq, cost, balance, extra = {}) => ({ seq, actor: 'agent-1', action: 'api_call', cost, balance, ...extra });
 const messages = (r) => r.violations.map((v) => `${v.index}:${v.message}`);
 
-test('the algorithm name', () => assert.equal(ALGO_VERSION, 'kar-tally-v1'));
+test('the algorithm name', () => assert.equal(ALGO_VERSION, 'kar-tally-v2'));
 
 test('a clean ledger passes: every balance recomputes to the cent', () => {
   const r = verifyLedger(500, 1, goodEntries);
@@ -133,4 +133,56 @@ test('a cap that is not a finite number, or a start that is not an integer, fail
   assert.deepEqual(verifyLedger(500, 1.5, goodEntries),
     { verdict: 'FAIL', violations: [{ index: -1, seq: null, message: 'startSeq must be an integer' }], rows: [], totalSpent: 0, finalBalance: 500 });
   assert.deepEqual(verifyLedger(500, 1n, goodEntries).violations[0].message, 'startSeq must be an integer');
+});
+
+// v2 regression: sub-cent costs must accumulate, not round to 0 or 1 cent per row (reported publicly, 4 Nov 2026).
+const many = (n, cost, cap) => Array.from({ length: n }, (_, i) => entry(i + 1, cost, Math.round((cap - cost * (i + 1)) * 1e6) / 1e6));
+test('500 x $0.004 totals $2.00, not $0', () => {
+  const r = verifyLedger(10, 1, many(500, 0.004, 10));
+  assert.equal(r.verdict, 'PASS');
+  assert.equal(r.totalSpent, 2);
+  assert.equal(r.finalBalance, 8);
+});
+test('500 x $0.006 totals $3.00, not $5', () => {
+  const r = verifyLedger(10, 1, many(500, 0.006, 10));
+  assert.equal(r.verdict, 'PASS');
+  assert.equal(r.totalSpent, 3);
+  assert.equal(r.finalBalance, 7);
+});
+test('a sub-cent overspend hidden by rounding is caught', () => {
+  const r = verifyLedger(1, 1, many(300, 0.004, 1)); // 300 x 0.004 = 1.20 against a $1 cap
+  assert.equal(r.verdict, 'FAIL');
+  assert.ok(r.violations.some((v) => /cap exceeded/.test(v.message)));
+  assert.equal(r.totalSpent, 1.2);
+});
+test('a claimed balance that ignores sub-cent costs is flagged', () => {
+  const e = many(500, 0.004, 10).map((x) => ({ ...x, balance: 10 }));
+  const r = verifyLedger(10, 1, e);
+  assert.equal(r.verdict, 'FAIL');
+  assert.ok(r.violations.some((v) => /balance mismatch/.test(v.message)));
+});
+
+// v2 limits (Kar's review of the sub-cent fix): counting to a millionth is exact only up to a safe integer.
+test('a cap too large to count exactly to a millionth fails, and the largest safe cap still counts', () => {
+  assert.deepEqual(verifyLedger(1e10, 1, goodEntries),
+    { verdict: 'FAIL', violations: [{ index: -1, seq: null, message: 'cap is too large to count exactly to a millionth' }], rows: [], totalSpent: 0, finalBalance: 1e10 });
+  assert.equal(verifyLedger(-1e10, 1, goodEntries).violations[0].message, 'cap is too large to count exactly to a millionth');
+  const r = verifyLedger(9e9, 1, [entry(1, 1, 9e9 - 1)]);
+  assert.equal(r.verdict, 'PASS');
+  assert.equal(r.finalBalance, 9e9 - 1);
+});
+test('a running total pushed past exact counting is flagged on that row', () => {
+  const r = verifyLedger(1, 1, [entry(1, 0.5, 0.5), entry(2, 1e10, 0.5 - 1e10)]);
+  assert.equal(r.verdict, 'FAIL');
+  assert.deepEqual(messages(r).filter((m) => /too large/.test(m)), ['1:running total is too large to count exactly to a millionth']);
+  assert.equal(r.rows[0].ok, true);
+});
+test('claimed balances are compared to the cent, half a cent rounding up', () => {
+  // 10 - 0.005 = 9.995 recomputed; to the cent that is 10.00 (Math.round rounds the half up), not 9.99
+  assert.equal(verifyLedger(10, 1, [entry(1, 0.005, 10)]).verdict, 'PASS');
+  assert.equal(verifyLedger(10, 1, [entry(1, 0.005, 9.99)]).verdict, 'FAIL');
+  // 10 - 0.0049 = 9.9951 is still 10.00 to the cent; 10 - 0.0051 = 9.9949 is 9.99
+  assert.equal(verifyLedger(10, 1, [entry(1, 0.0051, 9.99)]).verdict, 'PASS');
+  assert.equal(verifyLedger(10, 1, [entry(1, 0.0051, 10)]).verdict, 'FAIL');
+  assert.equal(verifyLedger(10, 1, [entry(1, 0.0051, 9.99)]).rows[0].recomputedBalance, 9.9949);
 });

@@ -5,7 +5,7 @@
 // writes no files: it reads the input you name and prints a JSON report to stdout.
 // MIT licence.
 // ---- KERNEL (from index.html) ----
-var ALGO_VERSION = 'kar-tally-v1';
+var ALGO_VERSION = 'kar-tally-v2';
 
 // ---------- core verifier (pure, deterministic, no I/O) ----------
 function verifyLedger(cap, startSeq, entries) {
@@ -17,8 +17,15 @@ function verifyLedger(cap, startSeq, entries) {
   }
   const violations = [];
   const rows = [];
-  const capCents = Math.round(cap * 100);
-  let runningCents = capCents;
+  // v2: track money in micro-units (1e-6) so sub-cent costs are not rounded away per row;
+  // only the claimed-balance comparison happens at cent precision.
+  const SCALE = 1000000;
+  const capMicros = Math.round(cap * SCALE);
+  // Counting to a millionth is exact only while the count is a safe integer (a cap up to about 9 billion).
+  if (!Number.isSafeInteger(capMicros)) {
+    return { verdict: 'FAIL', violations: [{ index: -1, seq: null, message: 'cap is too large to count exactly to a millionth' }], rows: [], totalSpent: 0, finalBalance: cap };
+  }
+  let runningMicros = capMicros;
   let expectedSeq = startSeq;
 
   if (!Array.isArray(entries) || entries.length === 0) {
@@ -57,16 +64,17 @@ function verifyLedger(cap, startSeq, entries) {
     }
 
     if (typeof cost === 'number' && isFinite(cost)) {
-      const costCents = Math.round(cost * 100);
-      runningCents -= costCents;
-      recomputedBalance = runningCents / 100;
-      if (runningCents < 0) {
+      const costMicros = Math.round(cost * SCALE);
+      runningMicros -= costMicros;
+      recomputedBalance = runningMicros / SCALE;
+      if (!Number.isSafeInteger(runningMicros)) rowMsgs.push('running total is too large to count exactly to a millionth');
+      if (runningMicros < 0) {
         capExceeded = true;
         rowMsgs.push('cap exceeded: recomputed balance ' + recomputedBalance.toFixed(2) + ' is below zero');
       }
       if (typeof claimedBalance === 'number' && isFinite(claimedBalance)) {
         const claimedCents = Math.round(claimedBalance * 100);
-        if (claimedCents !== runningCents) {
+        if (claimedCents !== Math.round(runningMicros / (SCALE / 100))) {
           balanceMismatch = true;
           rowMsgs.push('balance mismatch: claimed ' + claimedBalance.toFixed(2) + ', recomputed ' + recomputedBalance.toFixed(2));
         }
@@ -78,7 +86,7 @@ function verifyLedger(cap, startSeq, entries) {
   });
 
   const verdict = violations.length === 0 ? 'PASS' : 'FAIL';
-  return { verdict: verdict, violations: violations, rows: rows, totalSpent: (capCents - runningCents) / 100, finalBalance: runningCents / 100 };
+  return { verdict: verdict, violations: violations, rows: rows, totalSpent: (capMicros - runningMicros) / SCALE, finalBalance: runningMicros / SCALE };
 }
 
 function canonicalize(value) {
@@ -182,7 +190,7 @@ async function tally(input) {
       violations: result.violations,
       rows: result.rows,
       fingerprint: await fingerprint(cap, startSeq, entries),
-      method: 'The running balance starts at the cap; each entry\'s cost is subtracted in array order, in whole cents. ' +
+      method: 'The running balance starts at the cap; each entry\'s cost is subtracted in array order, exactly to a millionth of a unit (sub-cent costs accumulate). ' +
         'Each seq must equal the previous seq + 1 (the first must equal startSeq), each claimed balance must equal the ' +
         'recomputed balance to the cent, and the recomputed balance must never go below zero. fingerprint = SHA-256 of ' +
         'the canonical JSON of {cap, startSeq, entries} (keys sorted, no whitespace).',
