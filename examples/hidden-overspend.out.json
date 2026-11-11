@@ -2,7 +2,7 @@
   "exitCode": 1,
   "report": {
     "tool": "kar-tally",
-    "algorithm": "kar-tally-v1",
+    "algorithm": "kar-tally-v2",
     "verdict": "FAIL",
     "cap": 500,
     "startSeq": 1,
@@ -148,6 +148,6 @@
       }
     ],
     "fingerprint": "0c479df6717e1e52bcf0b0836a650f9642549bb6f2e3bed76671105574d2e01b",
-    "method": "The running balance starts at the cap; each entry's cost is subtracted in array order, in whole cents. Each seq must equal the previous seq + 1 (the first must equal startSeq), each claimed balance must equal the recomputed balance to the cent, and the recomputed balance must never go below zero. fingerprint = SHA-256 of the canonical JSON of {cap, startSeq, entries} (keys sorted, no whitespace)."
+    "method": "The running balance starts at the cap; each entry's cost is subtracted in array order, exactly to a millionth of a unit (sub-cent costs accumulate). Each seq must equal the previous seq + 1 (the first must equal startSeq), each claimed balance must equal the recomputed balance to the cent, and the recomputed balance must never go below zero. fingerprint = SHA-256 of the canonical JSON of {cap, startSeq, entries} (keys sorted, no whitespace)."
   }
 }

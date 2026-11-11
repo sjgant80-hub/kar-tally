@@ -32,7 +32,7 @@ upload for the Agensi skill marketplace. CI builds the same ZIP on every push an
 - **Tests:** `npm test` runs the kernel tests, and runs the skill script alone in an empty folder, the way
   Agensi runs it, against the expected outputs in `examples/`.
 - **Mutation gate:** witness v0.6 made 38 single-operator mutants of `kernel.mjs` and the tests caught
-  38; no survivors and nothing baselined. Receipt: `receipts/witness.json` (kernel SHA-256 `553245e6363cb676…`).
+  38; no survivors and nothing baselined. Receipt: `receipts/witness.json` (kernel SHA-256 `c0dc1cd20f2fe52c…`).
   CI re-runs the gate on every push: https://github.com/sjgant80-hub/kar-tally/actions/workflows/ci.yml
 
 Powered by the Konomi architecture, created by Thomas Frumkin. MIT licence (see `LICENSE`).
