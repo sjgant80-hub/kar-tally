@@ -2,6 +2,8 @@
 
 **Live:** https://sjgant80-hub.github.io/kar-tally/
 
+This repository is a cell of the [estate genome](https://sjgant80-hub.github.io/estate-genome/): its `seed.json` and `genome/` let the birth check run its judge (Kar-Tally's own recompute), its lane, its health and its tombstone, on every push.
+
 Deterministic budget-cap ledger auditor — **no LLM judge**. Paste an AI agent's spend log (a cap plus
 per-entry costs and claimed running balances); Kar-Tally recomputes the whole ledger from scratch —
 cap minus cumulative cost per entry — to prove the claimed balances are arithmetically consistent, the

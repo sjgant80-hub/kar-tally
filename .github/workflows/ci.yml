@@ -19,6 +19,8 @@ jobs:
         run: npm test
       - name: the cost case kernel (checkcase.mjs) and its sourced basis
         run: node --test checkcase.test.mjs
+      - name: the estate genome cell (genome/cell.mjs) - its judge is this kernel's own recompute
+        run: node --test genome.test.mjs
       - name: the committed mutation receipt is for this kernel and these tests
         run: node gate.mjs --verify
       - name: Agensi ZIP (package rules checked, SHA-256 printed)
@@ -51,3 +53,15 @@ jobs:
           cap: 100000
           node-version: 20
           fuzz: checkcase.mjs:checkCase checkcase.mjs:figures
+  witness-genome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: witness v0.6 mutation gate on the genome cell (every mutant)
+        uses: sjgant80-hub/witness@v0.6
+        with:
+          files: genome/cell.mjs
+          test-command: node --test genome.test.mjs
+          cap: 100000
+          node-version: 20
+          fuzz: genome/cell.mjs:judge genome/cell.mjs:inLane genome/cell.mjs:health
