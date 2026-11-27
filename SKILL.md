@@ -118,4 +118,4 @@ fingerprint on any machine, and no language model judges anything.
 
 ---
 
-MIT licence: see `LICENSE`.
+Powered by the Konomi architecture, created by Thomas Frumkin. MIT licence: see `LICENSE`.
